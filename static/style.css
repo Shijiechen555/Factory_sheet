@@ -1,0 +1,56 @@
+body {
+    background-color: #f4f7f6;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Ensure the container expands properly */
+.container {
+    background: white;
+    width: 90%;
+    max-width: 800px;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow-y: auto; /* ✅ Allow scrolling */
+    max-height: 90vh;  /* ✅ Prevents it from taking full screen but still allows scrolling */
+}
+
+/* Fix form section spacing */
+.form-section {
+    background: #ecf0f1;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    overflow-y: auto; /* ✅ Ensures each section is scrollable if necessary */
+}
+
+/* Fix input fields to be more compact */
+input[type="number"],
+input[type="text"],
+input[type="date"] {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Make sure the submit button is visible */
+.submit-button {
+    background: #27ae60;
+    color: white;
+    padding: 12px;
+    font-size: 16px;
+    width: 100%;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: background 0.3s;
+    position: sticky;  /* ✅ Keeps button visible when scrolling */
+    bottom: 0;
+}

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factory Data Entry</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script>
+        function loadHTML(id, filename) {
+            fetch(`/static/${filename}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    document.getElementById(id).innerHTML = data;
+                })
+                .catch(error => console.log("Error loading " + filename, error));
+        }
+
+        window.onload = function() {
+            loadHTML("general-info-container", "general_info.html");
+            loadHTML("processing-details-container", "processing_details.html");
+            loadHTML("la-data-container", "la_data.html");
+            loadHTML("lb-data-container", "lb_data.html");
+            loadHTML("lc-data-container", "lc_data.html");
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h2>Factory Data Entry Form</h2>
+        <form action="/submit" method="post">
+
+            <div class="form-section">
+                <h3>General Information</h3>
+                <div id="general-info-container"></div>
+            </div>
+
+            <div class="form-section">
+                <h3>Processing Details</h3>
+                <div id="processing-details-container"></div>
+            </div>
+
+            <div class="form-section">
+                <h3>LA Data</h3>
+                <div id="la-data-container"></div>
+            </div>
+
+            <div class="form-section">
+                <h3>LB Data</h3>
+                <div id="lb-data-container"></div>
+            </div>
+
+            <div class="form-section">
+                <h3>LC Data</h3>
+                <div id="lc-data-container"></div>
+            </div>
+
+            <button type="submit" class="submit-button">Submit</button>
+        </form>
+    </div>
+</body>
+</html>
