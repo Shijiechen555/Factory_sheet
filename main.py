@@ -7,7 +7,7 @@ import string
 import os
 from dotenv import load_dotenv
 
-from original import SPREADSHEET_ID
+
 
 # 🔹 Google Sheets API Setup
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
