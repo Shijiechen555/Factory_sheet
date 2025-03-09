@@ -4,6 +4,10 @@ from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from openpyxl.utils import get_column_letter
 import string
+import os
+from dotenv import load_dotenv
+
+from original import SPREADSHEET_ID
 
 # 🔹 Google Sheets API Setup
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -12,8 +16,12 @@ JSON_KEYFILE = "deep-ground-385217-93ab33993add.json"
 creds = ServiceAccountCredentials.from_json_keyfile_name(JSON_KEYFILE, scope)
 client = gspread.authorize(creds)
 
-SPREADSHEET_ID = "1jaZAduo9ANa4TtI9iWmFcZf2IwhDc_qFQP013sBlTkY"
+load_dotenv()
+
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
+
 worksheet = client.open_by_key(SPREADSHEET_ID).worksheet("Tháng 02.2025")
+
 
 app = Flask(__name__)
 
