@@ -1,30 +1,28 @@
 from flask import Flask, render_template, request, redirect
-import openpyxl
-import os
+import gspread
+from datetime import datetime
+from oauth2client.service_account import ServiceAccountCredentials
+from openpyxl.utils import get_column_letter
+import string
 
+# 🔹 Google Sheets API Setup
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+JSON_KEYFILE = "deep-ground-385217-93ab33993add.json"
+
+creds = ServiceAccountCredentials.from_json_keyfile_name(JSON_KEYFILE, scope)
+client = gspread.authorize(creds)
+
+SPREADSHEET_ID = "1jaZAduo9ANa4TtI9iWmFcZf2IwhDc_qFQP013sBlTkY"
+worksheet = client.open_by_key(SPREADSHEET_ID).worksheet("Tháng 02.2025")
 
 app = Flask(__name__)
-
-data_file = "server_testing.xlsx"
-sheet_name = "Tháng 02.2025"
-
 
 @app.route('/')
 def index():
     return render_template('form.html')
 
-
 @app.route('/submit', methods=['POST'])
 def submit():
-    wb = openpyxl.load_workbook(data_file)
-    sheet = wb[sheet_name]
-
-    # ✅ Find the next available column (starting from Column C)
-    next_column = 3
-    while sheet.cell(row=1, column=next_column).value is not None:
-        next_column += 2  # ✅ Skips one column after every submission
-
-    # ✅ Define form fields and their expected formats
     number_fields = {"actual_weight", "post_fat_removal_weight", "pieces_per_kg","ingredient", "actual_weight", "post_fat_removal_weight",
         "defective_material", "bong_1", "bong_so", "bong_cat", "bong_8_10", "bong_less_8", "bong_b",
         "duoi", "vun", "mo", "dat", "bong_1_2", "bong_so_2", "bong_la", "bong_la_b", "dat_2", "vun_2",
@@ -44,8 +42,6 @@ def submit():
         "lc_9", "lc_10", "lc_10_vang", "lc_yellow", "lc_sample", "lc_good", "lc_good_yellow",
         "lc_white", "lc_bad_smell_white", "lc_yellow_hole", "lc_yellow_no_pass", "lc_green",
         "lc_yellow_bad_smell_pass", "lc_black_no_pass", "lc_black_bad_smell_no_pass", "lc_no_pass"}
-    percentage_fields = {"fat_removal_date"}  # Example field
-    currency_fields = {"cost", "total_price"}
     date_fields = {"entry_date", "production_date", "fat_removal_date"}
 
     form_fields = [
@@ -71,45 +67,80 @@ def submit():
         "lc_yellow_bad_smell_pass", "lc_black_no_pass", "lc_black_bad_smell_no_pass", "lc_no_pass"
     ]
 
-    # ✅ Retrieve form data safely using `.get()`
     form_data = {field: request.form.get(field, "") for field in form_fields}
 
-    # ✅ Define skipped rows
+    # ✅ **Find Next Available Column (Always Start from Column C)**
+    sheet_data = worksheet.get_all_values()
+
+    # ✅ **Check if Column C is empty first**
+    if not sheet_data or all(
+            not cell for cell in [row[2] for row in sheet_data if len(row) > 2]):  # Check if C is empty
+        next_column = 3  # Start at Column C
+    else:
+        # ✅ **Find last filled column that follows the pattern C → E → G → I**
+        last_filled_col = 3
+        while True:
+            col_letter = string.ascii_uppercase[last_filled_col - 1]
+            col_values = worksheet.col_values(last_filled_col)
+            if all(cell == '' for cell in col_values[1:]):  # Check if column is empty
+                break
+            last_filled_col += 2  # Skip one column for spacing
+
+        next_column = last_filled_col
+
+    # ✅ **Ensure Column is Within Google Sheets Limit**
+    if next_column > 98:
+        next_column = 3  # Reset to column C if limit is exceeded
+
+    # ✅ **Rows to be Skipped While Keeping Existing Values**
     skipped_rows = {8, 29, 30, 67, 110, 144}
-    current_row = 1
+    existing_values = {row: worksheet.cell(row, 2).value for row in skipped_rows}  # Read values from Column B
 
-    # ✅ Write data while skipping specified rows
-    for field, value in form_data.items():
-        while current_row in skipped_rows:
-            current_row += 1
+    formatted_data = []
+    row_counter = 1
+    form_index = 0  # Track index of form_fields
 
-        cell = sheet.cell(row=current_row, column=next_column)
-
-        # ✅ Convert data format before writing to Excel
-        if value:
+    while form_index < len(form_fields):
+        if row_counter in skipped_rows:
+            formatted_data.append([existing_values.get(row_counter, "")])
+        else:
+            field = form_fields[form_index]
+            value = form_data.get(field, "")
             try:
                 if field in number_fields:
-                    cell.value = float(value)
-                    cell.number_format = '0.00'  # Decimal format
-                elif field in percentage_fields:
-                    cell.value = float(value) / 100  # Convert to fraction for percentage
-                    cell.number_format = '0.00%'
-                elif field in currency_fields:
-                    cell.value = float(value)
-                    cell.number_format = '"$"#,##0.00'  # Currency format
+                    formatted_value = float(value)
                 elif field in date_fields:
-                    cell.value = datetime.strptime(value, "%Y-%m-%d")  # Convert string to date
-                    cell.number_format = 'YYYY-MM-DD'  # Standard Date Format
+                    formatted_value = datetime.strptime(value, "%Y-%m-%d").strftime("%Y-%m-%d")
                 else:
-                    cell.value = value  # Default format
+                    formatted_value = value
             except ValueError:
-                cell.value = value  # If conversion fails, store as text
-        current_row += 1
+                formatted_value = value
 
-    wb.save(data_file)
-    print(f"✅ Data saved to Column {next_column}, skipped rows: {skipped_rows}")
+            formatted_data.append([formatted_value])
+            form_index += 1  # Only increase form index when data is added
+
+        row_counter += 1  # Always increase row counter to track correct row
+
+    # ✅ Convert next_column to Google Sheets Column Letter
+    def get_column_letter(n):
+        result = ""
+        while n > 0:
+            n, remainder = divmod(n - 1, 26)
+            result = string.ascii_uppercase[remainder] + result
+        return result
+
+    column_letter = get_column_letter(next_column)
+    cell_range = f"{column_letter}1:{column_letter}{len(formatted_data)}"
+
+    print(f"Updating range: {cell_range}")  # Debugging line
+    try:
+        worksheet.update(cell_range, formatted_data)
+        print(f"✅ Data saved to Column {column_letter}, skipped rows: {skipped_rows}")
+    except gspread.exceptions.APIError as e:
+        print(f"❌ Google Sheets API Error: {e}")
+
     return redirect('/')
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5002)
