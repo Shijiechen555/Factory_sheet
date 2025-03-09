@@ -3,10 +3,10 @@ import gspread
 from datetime import datetime
 import string
 from oauth2client.service_account import ServiceAccountCredentials
-# import json
+import base64
+import json
 import os
 from dotenv import load_dotenv
-
 
 import os
 from dotenv import load_dotenv
@@ -29,11 +29,25 @@ if not SPREADSHEET_ID:
 # 🔹 Google Sheets API Setup
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-json_keyfile = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
-creds = ServiceAccountCredentials.from_json_keyfile_name(json_keyfile, scope)
+# json_keyfile = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+# creds = ServiceAccountCredentials.from_json_keyfile_name(json_keyfile, scope)
+# client = gspread.authorize(creds)
+google_creds_b64 = os.getenv("GOOGLE_CREDENTIALS_B64")
+
+if not google_creds_b64:
+    raise ValueError("🚨 GOOGLE_CREDENTIALS_B64 is missing. Set it in environment variables.")
+
+google_creds_json = base64.b64decode(google_creds_b64).decode('utf-8')
+
+# ✅ Convert JSON String to a Temporary File
+with open("temp_google_creds.json", "w") as temp_file:
+    temp_file.write(google_creds_json)
+
+creds = ServiceAccountCredentials.from_json_keyfile_name("temp_google_creds.json", scope)
+
+# ✅ Authorize gspread
 client = gspread.authorize(creds)
-
 
 worksheet = client.open_by_key(SPREADSHEET_ID).worksheet(SHEET_NAME)
 

@@ -2,3 +2,7 @@ echo ".env" > .gitignore
 echo "config/*.json" >> .gitignore
 
 
+.env
+temp_google_creds.json
+config/*.json  # Any JSON files inside the config folder
+
