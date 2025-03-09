@@ -1,27 +1,41 @@
 from flask import Flask, render_template, request, redirect
 import gspread
 from datetime import datetime
-from oauth2client.service_account import ServiceAccountCredentials
-from openpyxl.utils import get_column_letter
 import string
+from oauth2client.service_account import ServiceAccountCredentials
+# import json
 import os
 from dotenv import load_dotenv
 
 
+import os
+from dotenv import load_dotenv
+
+# ✅ Load the .env file
+load_dotenv()
+
+# ✅ Retrieve the Spreadsheet ID
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
+SHEET_NAME = os.getenv("SHEET_NAME")
+
+# Debugging: Print the loaded value
+print(f"🔹 Loaded Spreadsheet ID: {SPREADSHEET_ID}")
+
+# ✅ Check if the variable is being loaded properly
+if not SPREADSHEET_ID:
+    raise ValueError("❌ ERROR: SPREADSHEET_ID is not found in the .env file")
+
 
 # 🔹 Google Sheets API Setup
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-JSON_KEYFILE = "deep-ground-385217-93ab33993add.json"
 
-creds = ServiceAccountCredentials.from_json_keyfile_name(JSON_KEYFILE, scope)
+json_keyfile = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+creds = ServiceAccountCredentials.from_json_keyfile_name(json_keyfile, scope)
 client = gspread.authorize(creds)
 
-load_dotenv()
 
-SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
-
-worksheet = client.open_by_key(SPREADSHEET_ID).worksheet("Tháng 02.2025")
-
+worksheet = client.open_by_key(SPREADSHEET_ID).worksheet(SHEET_NAME)
 
 app = Flask(__name__)
 
@@ -31,6 +45,7 @@ def index():
 
 @app.route('/submit', methods=['POST'])
 def submit():
+    # Define fields that require special formatting
     number_fields = {"actual_weight", "post_fat_removal_weight", "pieces_per_kg","ingredient", "actual_weight", "post_fat_removal_weight",
         "defective_material", "bong_1", "bong_so", "bong_cat", "bong_8_10", "bong_less_8", "bong_b",
         "duoi", "vun", "mo", "dat", "bong_1_2", "bong_so_2", "bong_la", "bong_la_b", "dat_2", "vun_2",
@@ -52,6 +67,7 @@ def submit():
         "lc_yellow_bad_smell_pass", "lc_black_no_pass", "lc_black_bad_smell_no_pass", "lc_no_pass"}
     date_fields = {"entry_date", "production_date", "fat_removal_date"}
 
+    # List of all form fields
     form_fields = [
         "entry_date", "supplier", "production_date", "pieces_per_kg", "fat_removal_date",
         "raw_material_code", "remarks", "ingredient", "actual_weight", "post_fat_removal_weight",
@@ -73,8 +89,10 @@ def submit():
         "lc_9", "lc_10", "lc_10_vang", "lc_yellow", "lc_sample", "lc_good", "lc_good_yellow",
         "lc_white", "lc_bad_smell_white", "lc_yellow_hole", "lc_yellow_no_pass", "lc_green",
         "lc_yellow_bad_smell_pass", "lc_black_no_pass", "lc_black_bad_smell_no_pass", "lc_no_pass"
+
     ]
 
+    # Extract form data
     form_data = {field: request.form.get(field, "") for field in form_fields}
 
     # ✅ **Find Next Available Column (Always Start from Column C)**
