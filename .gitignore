@@ -6,3 +6,8 @@ echo "config/*.json" >> .gitignore
 temp_google_creds.json
 config/*.json  # Any JSON files inside the config folder
 
+# Ignore sensitive files
+.env
+config/*.json
+temp_google_creds.json
+
